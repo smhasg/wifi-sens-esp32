@@ -5,7 +5,12 @@ import joblib
 
 model = joblib.load("wifi_presence_model.pkl")
 
-st.title("WiFi CSI Human Detection")
+st.title("WiFi CSI Sensing Dashboard")
+
+people_placeholder = st.metric(
+    label="Detected People",
+    value=0
+)
 
 placeholder = st.empty()
 
