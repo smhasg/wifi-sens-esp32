@@ -2,36 +2,55 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import joblib
+from stream_simulator import stream
 
-model = joblib.load("wifi_presence_model.pkl")
+model = joblib.load("model/model.pkl")
 
-st.title("WiFi CSI Sensing Dashboard")
+st.title("📡 WiFi CSI Sensing Dashboard")
 
-people_placeholder = st.metric(
-    label="Detected People",
-    value=0
-)
+# UI placeholders
+heatmap_slot = st.empty()
+plot_slot = st.empty()
 
-placeholder = st.empty()
+people_metric = st.metric("Detected People", 0)
+status = st.empty()
 
-while True:
+for window, true_label in stream():
 
-    sample = np.random.normal(-50, 5, 64)
+    # flatten feature
+    x = window[-1].reshape(1, -1)
 
-    pred = model.predict(sample.reshape(1, -1))[0]
+    pred = model.predict(x)[0]
 
+    # -------------------------
+    # Heatmap
+    # -------------------------
     fig, ax = plt.subplots()
+    ax.imshow(window.T, aspect='auto', cmap='jet')
+    ax.set_title("CSI Heatmap (Live)")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Subcarrier")
 
-    heat = np.tile(sample, (20,1))
+    heatmap_slot.pyplot(fig)
 
-    ax.imshow(
-        heat.T,
-        aspect="auto"
+    # -------------------------
+    # waveform
+    # -------------------------
+    fig2, ax2 = plt.subplots()
+    ax2.plot(window[-1])
+    ax2.set_title("Latest CSI Packet")
+
+    plot_slot.pyplot(fig2)
+
+    # -------------------------
+    # prediction logic
+    # -------------------------
+    people_metric.metric(
+        "Detected People",
+        int(pred)
     )
 
-    placeholder.pyplot(fig)
-
     if pred == 0:
-        st.success("Room Empty")
+        status.success("Empty Room")
     else:
-        st.error("Human Detected")
+        status.error("Human Detected")
