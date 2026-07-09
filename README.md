@@ -38,6 +38,67 @@ The collected CSI data is processed and transformed into machine learning featur
 - XGBoost Classifier
 - Random Forest Classifier
 
+
 ---
 
-# Project Structure
+# Machine Learning Pipeline
+
+1. Collect CSI packets
+2. Store data as CSV
+3. Remove invalid samples
+4. Normalize features
+5. Visualize CSI patterns
+6. Train ML models
+7. Evaluate performance
+
+---
+
+# Visualizations
+
+## Dataset Distribution
+
+## Mean CSI Heatmap
+
+## PCA Projection
+
+## t-SNE Projection
+
+## UMAP Projection
+
+## Correlation Matrix
+
+## Feature Importance
+
+## Confusion Matrix
+
+## CSI Signal Example
+
+## CSI Waterfall Visualization
+
+# Technologies
+
+- ESP32-S3
+- PlatformIO
+- Python
+- Pandas
+- NumPy
+- Scikit-learn
+- XGBoost
+- Matplotlib
+- Seaborn
+- UMAP
+- PCA
+- t-SNE
+
+---
+
+# Future Work
+
+- Real-time dashboard
+- Multi-person detection
+- Human activity recognition
+- Gesture recognition
+- Deep learning models
+- Streamlit visualization
+
+---
