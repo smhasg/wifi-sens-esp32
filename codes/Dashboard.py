@@ -4,6 +4,11 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import plotly.graph_objects as go
 import time
+import serial
+from datetime import datetime
+import pandas as pd
+import plotly.graph_objects as go
+import numpy as np
 
 # =========================
 # CONFIG
@@ -15,18 +20,101 @@ st.title("📡 ESP32 CSI Real-Time Dashboard")
 # =========================
 # LOAD DATA
 # =========================
-import pandas as pd
-import plotly.graph_objects as go
-import numpy as np
 
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+PORT = "COM9"
+BAUD = 921600
+ser = serial.Serial(
+    PORT,
+    BAUD,
+    timeout=1
+)
+HEADER = [
+    "pc_time",
+    "esp_time",
+    "rssi",
+    "channel",
+    "csi_len"
+]
+
+HEADER += [
+    f"cs{i}"
+    for i in range(256)
+]
+
+
+packet_count = 0
+start = time.time()
 clean = []
-with open("csi_buffer.csv") as f:
-    for line in f:
-        parts = line.strip().split(",")
 
-        if len(parts) == 261:
-            clean.append(parts)
+while True :
+    try:
+            line = ser.readline().decode(
+                errors="ignore"
+            ).strip()
+
+            if not line:
+                continue
+
+            values = line.split(",")
+
+            if len(values) < 4:
+                continue
+
+            esp_time = values[0]
+            rssi = values[1]
+            channel = values[2]
+            csi_len = int(values[3])
+
+            csi = values[4:]
+
+            # normalize CSI length
+            if len(csi) > 256:
+                csi = csi[:256]
+
+            elif len(csi) < 256:
+                csi += [
+                    "0"
+                ] * (256 - len(csi))
+
+            pc_time = datetime.now().isoformat(
+                timespec="milliseconds"
+            )
+
+            row = [
+                pc_time,
+                esp_time,
+                rssi,
+                channel,
+                str(csi_len)
+            ]
+
+            row += csi
+
+            clean.append(row)
+
+            packet_count += 1
+
+            if packet_count % 100 == 0:
+
+                elapsed = time.time() - start
+
+                rate = packet_count / elapsed
+
+                print(
+                    f"Packets: {packet_count} | "
+                    f"Rate: {rate:.1f} Hz | "
+                    f"Last CSI: {csi_len}"
+                )
+                break
+
+    except Exception as e:
+
+            print(
+                "ERROR:",
+                e
+            )
+
+# uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
 df = pd.DataFrame(clean)
 st.write("### Raw Data Preview")
