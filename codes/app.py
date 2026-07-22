@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+
 import plotly.graph_objects as go
 
 from sklearn.preprocessing import (
@@ -9,6 +10,7 @@ from sklearn.preprocessing import (
 )
 
 import joblib
+import os
 import time
 
 
@@ -16,114 +18,120 @@ from serial_reader import SerialReader
 
 
 
+# =====================
+# CONFIG
+# =====================
+
+
 st.set_page_config(
-    page_title="ESP32 CSI Dashboard",
+    page_title="ESP32 CSI Radar",
     layout="wide"
 )
 
 
+
 st.title(
-    "📡 ESP32-S3 CSI Human Sensing Dashboard"
+    "📡 ESP32-S3 CSI Human Sensing"
 )
 
 
 
-# =========================
-# SERIAL
-# =========================
+# =====================
+# SERIAL START
+# =====================
 
 
 if "reader" not in st.session_state:
 
 
-    reader = SerialReader(
+    reader=SerialReader(
         "COM9",
-        921600
+        921600,
+        2000
     )
 
     reader.start()
 
-    st.session_state.reader = reader
+    st.session_state.reader=reader
 
 
 
-reader = st.session_state.reader
+reader=st.session_state.reader
 
 
 
-# =========================
-# MODEL
-# =========================
+
+# =====================
+# LOAD MODEL
+# =====================
 
 
-model_file = st.sidebar.file_uploader(
-    "Upload XGBoost model",
-    type=["pkl"]
-)
+MODEL_PATH="models/people_counter.pkl"
 
 
 model=None
 
 
-if model_file:
 
-    model = joblib.load(
-        model_file
+if os.path.exists(MODEL_PATH):
+
+    model=joblib.load(
+        MODEL_PATH
     )
+
 
     st.sidebar.success(
-        "Model loaded"
+        "🟢 XGBoost model loaded"
+    )
+
+
+else:
+
+    st.sidebar.warning(
+        "🟡 Running without AI model"
     )
 
 
 
-# =========================
-# LABEL
-# =========================
 
 
-label = st.sidebar.radio(
-    "People inside room",
-    [
-        0,
-        1,
-        2
-    ]
-)
+# =====================
+# GET CSI DATA
+# =====================
+
+
+packets=reader.get_data()
 
 
 
-# =========================
-# READ DATA
-# =========================
-
-
-packets = reader.get_data()
-
-
-
-if len(packets)==0:
+if len(packets)<20:
 
     st.warning(
-        "Waiting ESP32 data..."
+        "Waiting for CSI packets..."
     )
 
-    st.stop()
+    time.sleep(1)
+
+    st.rerun()
 
 
 
 rows=[]
 
 
+
 for p in packets:
 
+
     rows.append(
+
         [
             p["rssi"],
             p["channel"],
             p["csi_len"],
             *p["csi"]
         ]
+
     )
 
 
@@ -138,9 +146,12 @@ columns=[
 
 
 columns += [
+
     f"cs{i}"
     for i in range(256)
+
 ]
+
 
 
 df=pd.DataFrame(
@@ -150,52 +161,115 @@ df=pd.DataFrame(
 
 
 
-st.subheader(
-    "Live Data"
+# =====================
+# HEADER METRICS
+# =====================
+
+
+c1,c2,c3,c4=st.columns(4)
+
+
+
+c1.metric(
+    "Packets",
+    len(df)
 )
 
 
-st.dataframe(
-    df.tail()
+c2.metric(
+    "RSSI",
+    round(
+        df.rssi.iloc[-1],
+        2
+    )
+)
+
+
+c3.metric(
+    "CSI Length",
+    df.csi_len.iloc[-1]
 )
 
 
 
-# =========================
-# PREDICTION
-# =========================
+# =====================
+# MODEL PREDICTION
+# =====================
 
 
 if model:
 
 
-    X=df.tail(1)
+    sample=df.tail(1)
 
 
-    prediction=model.predict(
-        X
+    pred=model.predict(
+        sample
     )[0]
 
 
+    st.subheader(
+        "👥 People Detection"
+    )
+
+
     st.metric(
-        "Model Prediction",
-        f"{prediction} people"
+        "Detected People",
+        int(pred)
     )
 
 
 else:
 
-
     st.info(
-        "No model uploaded - visualization mode"
+        "AI prediction disabled"
     )
 
 
 
 
-# =========================
-# VISUALIZATION
-# =========================
+
+# =====================
+# FEATURES
+# =====================
+
+
+csi_cols=[
+
+    f"cs{i}"
+    for i in range(256)
+
+]
+
+
+
+csi=df[csi_cols]
+
+
+
+# energy
+
+energy=np.sum(
+    np.square(
+        csi.values
+    ),
+    axis=1
+)
+
+
+# variance
+
+variance=np.var(
+    csi.values,
+    axis=1
+)
+
+
+
+# =====================
+# VISUALIZATION MENU
+# =====================
+
 
 
 mode=st.sidebar.selectbox(
@@ -204,11 +278,12 @@ mode=st.sidebar.selectbox(
 
     [
 
-    "Raw Signal",
-    "MinMax",
-    "Z-score",
-    "Moving Average",
-    "Heatmap"
+        "CSI Waterfall",
+        "CSI Energy",
+        "CSI Variance",
+        "RSSI",
+        "Single Subcarrier",
+        "Normalized CSI"
 
     ]
 
@@ -216,140 +291,236 @@ mode=st.sidebar.selectbox(
 
 
 
-feature=st.sidebar.selectbox(
+# =====================
+# CSI WATERFALL
+# =====================
 
-    "CSI antenna",
 
-    [
+if mode=="CSI Waterfall":
 
-        f"cs{i}"
-        for i in range(256)
 
-    ]
+    matrix=csi.values.T
 
+
+
+    fig=go.Figure(
+
+        data=go.Heatmap(
+
+            z=matrix
+
+        )
+
+    )
+
+
+    fig.update_layout(
+
+        height=700,
+
+        title="CSI Waterfall"
+
+    )
+
+
+    st.plotly_chart(
+    fig,
+    width="stretch"
 )
 
 
 
-def line_plot(data,title):
+
+# =====================
+# ENERGY
+# =====================
+
+
+elif mode=="CSI Energy":
+
 
     fig=go.Figure()
 
 
     fig.add_trace(
+
         go.Scatter(
-            y=data,
+            y=energy,
             mode="lines"
         )
+
     )
 
 
     fig.update_layout(
-        height=400,
-        title=title
+        title="CSI Energy / Motion",
+        height=400
     )
 
-
-    return fig
-
-
-
-
-if mode=="Raw Signal":
 
     st.plotly_chart(
-        line_plot(
-            df[feature],
-            "Raw CSI"
-        ),
-        use_container_width=True
+    fig,
+    width="stretch"
+)
+
+
+
+
+# =====================
+# VARIANCE
+# =====================
+
+
+elif mode=="CSI Variance":
+
+
+    fig=go.Figure()
+
+
+    fig.add_trace(
+
+        go.Scatter(
+            y=variance,
+            mode="lines"
+        )
+
+    )
+
+
+    fig.update_layout(
+        title="CSI Variance",
+        height=400
+    )
+
+
+    st.plotly_chart(
+    fig,
+    width="stretch"
+)
+
+
+
+
+# =====================
+# RSSI
+# =====================
+
+
+elif mode=="RSSI":
+
+
+    fig=go.Figure()
+
+
+    fig.add_trace(
+
+        go.Scatter(
+
+            y=df.rssi,
+
+            mode="lines"
+
+        )
+
+    )
+
+
+    fig.update_layout(
+        title="RSSI",
+        height=400
+    )
+
+
+    st.plotly_chart(
+    fig,
+    width="stretch"
+)
+
+
+
+
+# =====================
+# SINGLE CSI
+# =====================
+
+
+elif mode=="Single Subcarrier":
+
+
+    cs=st.sidebar.slider(
+        "Subcarrier",
+        0,
+        255,
+        0
+    )
+
+
+    fig=go.Figure()
+
+
+    fig.add_trace(
+
+        go.Scatter(
+
+            y=df[f"cs{cs}"],
+
+            mode="lines"
+
+        )
+
+    )
+
+
+    fig.update_layout(
+        title=f"CSI {cs}",
+        height=400
+    )
+
+
+    st.plotly_chart(
+        fig
     )
 
 
 
-elif mode=="MinMax":
+
+
+# =====================
+# NORMALIZED
+# =====================
+
+
+elif mode=="Normalized CSI":
 
 
     x=MinMaxScaler().fit_transform(
-        df[[feature]]
+        csi
     )
-
-
-    st.plotly_chart(
-        line_plot(
-            x,
-            "MinMax"
-        )
-    )
-
-
-
-elif mode=="Z-score":
-
-
-    x=StandardScaler().fit_transform(
-        df[[feature]]
-    )
-
-
-    st.plotly_chart(
-        line_plot(
-            x,
-            "Z-score"
-        )
-    )
-
-
-
-elif mode=="Moving Average":
-
-
-    ma=df[feature].rolling(
-        20
-    ).mean()
-
-
-    st.plotly_chart(
-        line_plot(
-            ma,
-            "Moving Average"
-        )
-    )
-
-
-
-elif mode=="Heatmap":
-
-
-    matrix=df[
-        [
-        f"cs{i}"
-        for i in range(256)
-        ]
-    ].values.T
 
 
     fig=go.Figure(
 
         go.Heatmap(
-            z=matrix
+            z=x.T
         )
 
     )
 
 
     fig.update_layout(
-        height=600
+        height=700
     )
 
 
     st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+    fig,
+    width="stretch"
+)
 
 
 
-time.sleep(0.1)
+# refresh
+
+time.sleep(0.3)
 
 st.rerun()
