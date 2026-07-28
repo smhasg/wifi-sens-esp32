@@ -16,6 +16,161 @@ import time
 
 from serial_reader import SerialReader
 
+import struct
+import socket
+
+
+class RuViewSender:
+
+    MAGIC = 0xC5110001
+
+    def __init__(
+        self,
+        ruview_ip,
+        ruview_port=5005,
+        node_id=1
+    ):
+
+        self.ruview_ip = ruview_ip
+        self.ruview_port = ruview_port
+        self.node_id = node_id
+
+        self.sequence = 0
+
+        self.sock = socket.socket(
+            socket.AF_INET,
+            socket.SOCK_DGRAM
+        )
+
+    def channel_to_frequency(
+        self,
+        channel
+    ):
+
+        return {
+            1: 2412,
+            2: 2417,
+            3: 2422,
+            4: 2427,
+            5: 2432,
+            6: 2437,
+            7: 2442,
+            8: 2447,
+            9: 2452,
+            10: 2457,
+            11: 2462,
+            12: 2467,
+            13: 2472,
+            14: 2484,
+        }.get(
+            int(channel),
+            2437
+        )
+
+    def send(
+        self,
+        packet
+    ):
+
+        csi = np.asarray(
+            packet["csi"],
+            dtype=np.float32
+        )
+
+        # ----------------------------------------------------
+        # IMPORTANT:
+        #
+        # This is only a temporary mapping.
+        #
+        # If your CSI is amplitude-only,
+        # this does NOT reconstruct real I/Q.
+        # ----------------------------------------------------
+
+        csi = np.clip(
+            csi,
+            -127,
+            127
+        ).astype(
+            np.int8
+        )
+
+        num_subcarriers = len(
+            csi
+        )
+
+        # Create fake imaginary component
+        imag = np.zeros_like(
+            csi
+        )
+
+        iq = np.empty(
+            num_subcarriers * 2,
+            dtype=np.int8
+        )
+
+        iq[0::2] = csi
+        iq[1::2] = imag
+
+        rssi = int(
+            np.clip(
+                packet.get(
+                    "rssi",
+                    -50
+                ),
+                -128,
+                127
+            )
+        )
+
+        channel = int(
+            packet.get(
+                "channel",
+                6
+            )
+        )
+
+        frequency = self.channel_to_frequency(
+            channel
+        )
+
+        # ADR-018
+        header = struct.pack(
+            "<IBBHIIbbH",
+
+            self.MAGIC,
+
+            self.node_id,
+
+            1,
+
+            num_subcarriers,
+
+            frequency,
+
+            self.sequence,
+
+            rssi,
+
+            -90,
+
+            0
+        )
+
+        data = (
+            header
+            + iq.tobytes()
+        )
+
+        self.sock.sendto(
+            data,
+            (
+                self.ruview_ip,
+                self.ruview_port
+            )
+        )
+
+        self.sequence += 1
+
 
 
 # =====================
@@ -27,22 +182,15 @@ st.set_page_config(
     page_title="ESP32 CSI Radar",
     layout="wide"
 )
-
-
-
 st.title(
     "📡 ESP32-S3 CSI Human Sensing"
 )
-
-
 
 # =====================
 # SERIAL START
 # =====================
 
-
 if "reader" not in st.session_state:
-
 
     reader=SerialReader(
         "COM9",
@@ -54,36 +202,22 @@ if "reader" not in st.session_state:
 
     st.session_state.reader=reader
 
-
-
 reader=st.session_state.reader
-
-
-
 
 # =====================
 # LOAD MODEL
 # =====================
-
-
-MODEL_PATH="models/people_counter.pkl"
-
-
+MODEL_PATH="xgb_csi_model.pkl"
 model=None
-
-
 
 if os.path.exists(MODEL_PATH):
 
     model=joblib.load(
         MODEL_PATH
     )
-
-
     st.sidebar.success(
         "🟢 XGBoost model loaded"
     )
-
 
 else:
 
@@ -94,34 +228,70 @@ else:
 
 
 
+########
 
-# =====================
-# GET CSI DATA
-# =====================
+# ---------------------------------------------------------
+# Initialize RuView sender
+# ---------------------------------------------------------
+
+if "ruview_sender" not in st.session_state:
+
+    st.session_state.ruview_sender = RuViewSender(
+
+        ruview_ip="192.168.1.100",
+
+        ruview_port=5005,
+
+        node_id=1
+    )
 
 
-packets=reader.get_data()
+# ---------------------------------------------------------
+# Read your ESP32 CSI
+# ---------------------------------------------------------
+
+packets = reader.get_data()
 
 
-
-if len(packets)<20:
+if len(packets) < 30:
 
     st.warning(
         "Waiting for CSI packets..."
     )
 
-    time.sleep(1)
+    time.sleep(
+        2
+    )
 
     st.rerun()
 
 
+# ---------------------------------------------------------
+# Send packets to RuView
+# ---------------------------------------------------------
 
-rows=[]
+for packet in packets:
+
+    try:
+
+        st.session_state.ruview_sender.send(
+            packet
+        )
+
+    except Exception as e:
+
+        st.error(
+            f"RuView send error: {e}"
+        )
 
 
+# ---------------------------------------------------------
+# Your existing Streamlit processing
+# ---------------------------------------------------------
+
+rows = []
 
 for p in packets:
-
 
     rows.append(
 
@@ -135,6 +305,59 @@ for p in packets:
     )
 
 
+columns = [
+
+    "rssi",
+    "channel",
+    "csi_len"
+
+]
+
+
+columns += [
+
+    f"cs{i}"
+
+    for i in range(256)
+
+]
+
+
+df = pd.DataFrame(
+
+    rows,
+
+    columns=columns
+
+)
+
+########
+
+
+# =====================
+# GET CSI DATA
+# =====================
+packets=reader.get_data()
+if len(packets)<30:
+    st.warning(
+        "Waiting for CSI packets..."
+    )
+    time.sleep(2)
+    st.rerun()
+rows=[]
+
+for p in packets:
+
+    rows.append(
+
+        [
+            p["rssi"],
+            p["channel"],
+            p["csi_len"],
+            *p["csi"]
+        ]
+
+    )
 
 columns=[
 
@@ -521,6 +744,6 @@ elif mode=="Normalized CSI":
 
 # refresh
 
-time.sleep(0.3)
+time.sleep(2)
 
 st.rerun()
