@@ -1,6 +1,9 @@
 import serial
 import socket
 import struct
+import time
+import random
+
 
 
 # ============================================================
@@ -13,7 +16,8 @@ BAUD_RATE = 921600
 RUVIEW_IP = "127.0.0.1"
 RUVIEW_PORT = 3333
 
-MAGIC = 0xC5110001
+CSI_MAGIC_V6 = 0xC5110006
+# MAGIC = 0xC5110001
 
 NODE_ID = 1
 
@@ -51,159 +55,99 @@ def channel_to_frequency(channel):
 # CREATE ADR-018 FRAME
 # ============================================================
 
-def build_adr018_frame(
-    timestamp,
-    rssi,
-    channel,
-    csi
+
+def build_adr018(
+        node_id=1,
+        n_antennas=1,
+        n_subcarriers=64,
+        channel=6,
+        rssi=-40,
+        noise_floor=-90,
 ):
 
-    # --------------------------------------------------------
-    # Validate CSI
-    # --------------------------------------------------------
-
-    if not csi:
-
-        return None
+    timestamp_us = int(time.time() * 1_000_000)
 
 
-    if len(csi) % 2 != 0:
+    # Generate fake IQ
+    iq = []
 
-        print(
-            f"[WARN] "
-            f"CSI length must be even: "
-            f"{len(csi)}"
-        )
-
-        return None
+    for _ in range(n_subcarriers):
+        iq.append(random.randint(-50, 50))  # I
+        iq.append(random.randint(-50, 50))  # Q
 
 
-    # --------------------------------------------------------
-    # CSI format
-    #
-    # [I0, Q0, I1, Q1, I2, Q2, ...]
-    #
-    # 256 CSI values
-    # = 128 I/Q samples
-    # --------------------------------------------------------
-
-    num_subcarriers = len(csi) // 2
+    packet = bytearray()
 
 
-    # --------------------------------------------------------
-    # Frequency
-    # --------------------------------------------------------
+    # 0-3 MAGIC
+    packet += struct.pack(
+        "<I",
+        CSI_MAGIC_V6
+    )
 
-    frequency_mhz = channel_to_frequency(
+
+    # 4 node_id
+    packet += struct.pack(
+        "B",
+        node_id
+    )
+
+
+    # 5 antennas
+    packet += struct.pack(
+        "B",
+        n_antennas
+    )
+
+
+    # 6-7 subcarriers
+    packet += struct.pack(
+        "<H",
+        n_subcarriers
+    )
+
+
+    # 8 channel
+    packet += struct.pack(
+        "B",
         channel
     )
 
 
-    # --------------------------------------------------------
-    # Sequence
-    #
-    # Use timestamp as sequence
-    # --------------------------------------------------------
-
-    sequence = int(timestamp)
-
-
-    # --------------------------------------------------------
-    # ADR-018 Header
-    # --------------------------------------------------------
-
-    header = struct.pack(
-
-        "<IBBHIIbbH",
-
-        MAGIC,
-
-        NODE_ID,
-
-        NUM_ANTENNAS,
-
-        num_subcarriers,
-
-        frequency_mhz,
-
-        sequence,
-
-        max(
-            -128,
-            min(
-                127,
-                rssi
-            )
-        ),
-
-        -90,
-
-        0
-
+    # 9 rssi
+    packet += struct.pack(
+        "b",
+        rssi
     )
 
 
-    # --------------------------------------------------------
-    # I/Q PAYLOAD
-    # --------------------------------------------------------
-
-    iq_data = bytearray()
-
-
-    for index in range(
-        0,
-        len(csi),
-        2
-    ):
-
-        i_value = max(
-            -128,
-            min(
-                127,
-                int(csi[index])
-            )
-        )
-
-
-        q_value = max(
-            -128,
-            min(
-                127,
-                int(csi[index + 1])
-            )
-        )
-
-
-        # I
-
-        iq_data.append(
-            i_value & 0xFF
-        )
-
-
-        # Q
-
-        iq_data.append(
-            q_value & 0xFF
-        )
-
-
-    # --------------------------------------------------------
-    # Final frame
-    # --------------------------------------------------------
-
-    frame = (
-
-        header
-
-        +
-
-        bytes(iq_data)
-
+    # 10 noise floor
+    packet += struct.pack(
+        "b",
+        noise_floor
     )
 
 
-    return frame
+    # 11-15 reserved
+    packet += bytes(5)
+
+
+    # 16-19 timestamp
+    packet += struct.pack(
+        "<I",
+        timestamp_us & 0xffffffff
+    )
+
+
+    # IQ payload
+    packet += struct.pack(
+        f"{len(iq)}b",
+        *iq
+    )
+
+
+    return packet
+
 
 
 # ============================================================
@@ -267,210 +211,23 @@ def main():
 
         while True:
 
-            # ------------------------------------------------
-            # Read serial line
-            # ------------------------------------------------
+            data = build_adr018()
 
-            raw_line = ser.readline()
-
-
-            if not raw_line:
-
-                continue
-
-
-            # ------------------------------------------------
-            # Decode
-            # ------------------------------------------------
-
-            line = raw_line.decode(
-
-                "utf-8",
-
-                errors="ignore"
-
-            ).strip()
-
-
-            if not line:
-
-                continue
-
-
-            # ------------------------------------------------
-            # Parse CSV
-            #
-            # timestamp
-            # rssi
-            # channel
-            # csi_length
-            # csi_0
-            # csi_1
-            # ...
-            # ------------------------------------------------
-
-            try:
-
-                values = [
-
-                    int(x.strip())
-
-                    for x in line.split(",")
-
-                    if x.strip() != ""
-
-                ]
-
-
-            except ValueError:
-
-                print(
-
-                    "[WARN] Invalid CSV:",
-
-                    line[:200]
-
+            sock.sendto(
+                data,
+                (
+                    RUVIEW_IP,
+                    RUVIEW_PORT
                 )
-
-                continue
-
-
-            # ------------------------------------------------
-            # Validate minimum fields
-            # ------------------------------------------------
-
-            if len(values) < 5:
-
-                print(
-
-                    "[WARN] Not enough fields:",
-
-                    len(values)
-
-                )
-
-                continue
-
-
-            # ------------------------------------------------
-            # Extract metadata
-            # ------------------------------------------------
-
-            timestamp = values[0]
-
-            rssi = values[1]
-
-            channel = values[2]
-
-            csi_length = values[3]
-
-
-            # ------------------------------------------------
-            # Extract CSI
-            # ------------------------------------------------
-
-            csi = values[4:]
-
-
-            # ------------------------------------------------
-            # Validate CSI length
-            # ------------------------------------------------
-
-            if len(csi) != csi_length:
-
-                print(
-
-                    f"[WARN] CSI length mismatch: "
-
-                    f"header={csi_length} "
-
-                    f"actual={len(csi)}"
-
-                )
-
-                continue
-
-
-            # ------------------------------------------------
-            # Build ADR-018
-            # ------------------------------------------------
-
-            frame = build_adr018_frame(
-
-                timestamp,
-
-                rssi,
-
-                channel,
-
-                csi
-
             )
 
-
-            if frame is None:
-
-                continue
-
-
-            # ------------------------------------------------
-            # Send UDP
-            # ------------------------------------------------
-
-            try:
-
-                sent_bytes = sock.sendto(
-
-                    frame,
-
-                    (
-
-                        RUVIEW_IP,
-
-                        RUVIEW_PORT
-
-                    )
-
-                )
-
-
-            except OSError as e:
-
-                print(
-
-                    f"[UDP ERROR] {e}"
-
-                )
-
-                continue
-
-
-            # ------------------------------------------------
-            # Logging
-            # ------------------------------------------------
 
             print(
-
-                f"[OK] "
-
-                f"frame={frame_counter} "
-
-                f"timestamp={timestamp} "
-
-                f"rssi={rssi} "
-
-                f"channel={channel} "
-
-                f"csi={len(csi)} "
-
-                f"subcarriers={len(csi) // 2} "
-
-                f"bytes={sent_bytes}"
-
+                f"sent {len(data)} bytes"
             )
-
-
+            
             frame_counter += 1
+            time.sleep(0.05)
 
 
     except KeyboardInterrupt:
@@ -496,3 +253,5 @@ def main():
 if __name__ == "__main__":
 
     main()
+
+

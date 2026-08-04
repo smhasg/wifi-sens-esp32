@@ -1,512 +1,98 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-
-import plotly.graph_objects as go
-
-from sklearn.preprocessing import (
-    MinMaxScaler,
-    StandardScaler
-)
-
-import joblib
-import os
 import time
 
+# =========================
+# Local Modules
+# =========================
+
+from config import (
+    SERIAL_PORT,
+    BAUD_RATE,
+    BUFFER_SIZE
+)
 
 from serial_reader import SerialReader
+from feature_extractor import FeatureExtractor
+from model_manager import ModelManager
+from utils import (
+    compute_energy,
+    compute_variance
+)
 
-import struct
-import socket
+from plots import (
+    live_csi,
+    waterfall,
+    rssi
+)
 
-
-class RuViewSender:
-
-    MAGIC = 0xC5110001
-
-    def __init__(
-        self,
-        ruview_ip,
-        ruview_port=5005,
-        node_id=1
-    ):
-
-        self.ruview_ip = ruview_ip
-        self.ruview_port = ruview_port
-        self.node_id = node_id
-
-        self.sequence = 0
-
-        self.sock = socket.socket(
-            socket.AF_INET,
-            socket.SOCK_DGRAM
-        )
-
-    def channel_to_frequency(
-        self,
-        channel
-    ):
-
-        return {
-            1: 2412,
-            2: 2417,
-            3: 2422,
-            4: 2427,
-            5: 2432,
-            6: 2437,
-            7: 2442,
-            8: 2447,
-            9: 2452,
-            10: 2457,
-            11: 2462,
-            12: 2467,
-            13: 2472,
-            14: 2484,
-        }.get(
-            int(channel),
-            2437
-        )
-
-    def send(
-        self,
-        packet
-    ):
-
-        csi = np.asarray(
-            packet["csi"],
-            dtype=np.float32
-        )
-
-        # ----------------------------------------------------
-        # IMPORTANT:
-        #
-        # This is only a temporary mapping.
-        #
-        # If your CSI is amplitude-only,
-        # this does NOT reconstruct real I/Q.
-        # ----------------------------------------------------
-
-        csi = np.clip(
-            csi,
-            -127,
-            127
-        ).astype(
-            np.int8
-        )
-
-        num_subcarriers = len(
-            csi
-        )
-
-        # Create fake imaginary component
-        imag = np.zeros_like(
-            csi
-        )
-
-        iq = np.empty(
-            num_subcarriers * 2,
-            dtype=np.int8
-        )
-
-        iq[0::2] = csi
-        iq[1::2] = imag
-
-        rssi = int(
-            np.clip(
-                packet.get(
-                    "rssi",
-                    -50
-                ),
-                -128,
-                127
-            )
-        )
-
-        channel = int(
-            packet.get(
-                "channel",
-                6
-            )
-        )
-
-        frequency = self.channel_to_frequency(
-            channel
-        )
-
-        # ADR-018
-        header = struct.pack(
-            "<IBBHIIbbH",
-
-            self.MAGIC,
-
-            self.node_id,
-
-            1,
-
-            num_subcarriers,
-
-            frequency,
-
-            self.sequence,
-
-            rssi,
-
-            -90,
-
-            0
-        )
-
-        data = (
-            header
-            + iq.tobytes()
-        )
-
-        self.sock.sendto(
-            data,
-            (
-                self.ruview_ip,
-                self.ruview_port
-            )
-        )
-
-        self.sequence += 1
-
-
-
-# =====================
-# CONFIG
-# =====================
-
+# =========================
+# STREAMLIT CONFIG
+# =========================
 
 st.set_page_config(
     page_title="ESP32 CSI Radar",
     layout="wide"
 )
+
 st.title(
-    "📡 ESP32-S3 CSI Human Sensing"
+    "📡 ESP32-S3 CSI Human Sensing Dashboard"
 )
 
-# =====================
-# SERIAL START
-# =====================
+# =========================
+# SESSION STATE INIT
+# =========================
+
 
 if "reader" not in st.session_state:
 
-    reader=SerialReader(
-        "COM9",
-        921600,
-        2000
+    st.info(
+        "Starting ESP32 Serial Reader..."
+    )
+
+    reader = SerialReader(
+        SERIAL_PORT,
+        BAUD_RATE,
+        BUFFER_SIZE
     )
 
     reader.start()
 
-    st.session_state.reader=reader
 
-reader=st.session_state.reader
+    st.session_state.reader = reader
 
-# =====================
-# LOAD MODEL
-# =====================
-MODEL_PATH="xgb_csi_model.pkl"
-model=None
 
-if os.path.exists(MODEL_PATH):
 
-    model=joblib.load(
-        MODEL_PATH
-    )
-    st.sidebar.success(
-        "🟢 XGBoost model loaded"
-    )
+if "model_manager" not in st.session_state:
 
-else:
+    st.session_state.model_manager = ModelManager()
 
-    st.sidebar.warning(
-        "🟡 Running without AI model"
-    )
 
+reader = st.session_state.reader
+model_manager = st.session_state.model_manager
 
+# =========================
+# SIDEBAR
+# =========================
 
 
-########
-
-# ---------------------------------------------------------
-# Initialize RuView sender
-# ---------------------------------------------------------
-
-if "ruview_sender" not in st.session_state:
-
-    st.session_state.ruview_sender = RuViewSender(
-
-        ruview_ip="192.168.1.100",
-
-        ruview_port=5005,
-
-        node_id=1
-    )
-
-
-# ---------------------------------------------------------
-# Read your ESP32 CSI
-# ---------------------------------------------------------
-
-packets = reader.get_data()
-
-
-if len(packets) < 30:
-
-    st.warning(
-        "Waiting for CSI packets..."
-    )
-
-    time.sleep(
-        2
-    )
-
-    st.rerun()
-
-
-# ---------------------------------------------------------
-# Send packets to RuView
-# ---------------------------------------------------------
-
-for packet in packets:
-
-    try:
-
-        st.session_state.ruview_sender.send(
-            packet
-        )
-
-    except Exception as e:
-
-        st.error(
-            f"RuView send error: {e}"
-        )
-
-
-# ---------------------------------------------------------
-# Your existing Streamlit processing
-# ---------------------------------------------------------
-
-rows = []
-
-for p in packets:
-
-    rows.append(
-
-        [
-            p["rssi"],
-            p["channel"],
-            p["csi_len"],
-            *p["csi"]
-        ]
-
-    )
-
-
-columns = [
-
-    "rssi",
-    "channel",
-    "csi_len"
-
-]
-
-
-columns += [
-
-    f"cs{i}"
-
-    for i in range(256)
-
-]
-
-
-df = pd.DataFrame(
-
-    rows,
-
-    columns=columns
-
-)
-
-########
-
-
-# =====================
-# GET CSI DATA
-# =====================
-packets=reader.get_data()
-if len(packets)<30:
-    st.warning(
-        "Waiting for CSI packets..."
-    )
-    time.sleep(2)
-    st.rerun()
-rows=[]
-
-for p in packets:
-
-    rows.append(
-
-        [
-            p["rssi"],
-            p["channel"],
-            p["csi_len"],
-            *p["csi"]
-        ]
-
-    )
-
-columns=[
-
-    "rssi",
-    "channel",
-    "csi_len"
-
-]
-
-
-columns += [
-
-    f"cs{i}"
-    for i in range(256)
-
-]
-
-
-
-df=pd.DataFrame(
-    rows,
-    columns=columns
+st.sidebar.header(
+    "⚙ Settings"
 )
 
 
+model_choice = st.sidebar.radio(
 
-# =====================
-# HEADER METRICS
-# =====================
-
-
-c1,c2,c3,c4=st.columns(4)
-
-
-
-c1.metric(
-    "Packets",
-    len(df)
-)
-
-
-c2.metric(
-    "RSSI",
-    round(
-        df.rssi.iloc[-1],
-        2
-    )
-)
-
-
-c3.metric(
-    "CSI Length",
-    df.csi_len.iloc[-1]
-)
-
-
-
-# =====================
-# MODEL PREDICTION
-# =====================
-
-
-if model:
-
-
-    sample=df.tail(1)
-
-
-    pred=model.predict(
-        sample
-    )[0]
-
-
-    st.subheader(
-        "👥 People Detection"
-    )
-
-
-    st.metric(
-        "Detected People",
-        int(pred)
-    )
-
-
-else:
-
-    st.info(
-        "AI prediction disabled"
-    )
-
-
-
-
-
-# =====================
-# FEATURES
-# =====================
-
-
-csi_cols=[
-
-    f"cs{i}"
-    for i in range(256)
-
-]
-
-
-
-csi=df[csi_cols]
-
-
-
-# energy
-
-energy=np.sum(
-    np.square(
-        csi.values
-    ),
-    axis=1
-)
-
-
-# variance
-
-variance=np.var(
-    csi.values,
-    axis=1
-)
-
-
-
-# =====================
-# VISUALIZATION MENU
-# =====================
-
-
-
-mode=st.sidebar.selectbox(
-
-    "Visualization",
+    "AI Model",
 
     [
 
-        "CSI Waterfall",
-        "CSI Energy",
-        "CSI Variance",
-        "RSSI",
-        "Single Subcarrier",
-        "Normalized CSI"
+        "None",
+
+        "Random Forest",
+
+        "XGBoost"
 
     ]
 
@@ -514,236 +100,274 @@ mode=st.sidebar.selectbox(
 
 
 
-# =====================
-# CSI WATERFALL
-# =====================
+visualization = st.sidebar.selectbox(
 
+    "Visualization",
 
-if mode=="CSI Waterfall":
+    [
 
+        "Live CSI",
 
-    matrix=csi.values.T
+        "Waterfall",
 
+        "RSSI",
 
+        "Energy",
 
-    fig=go.Figure(
+        "Variance"
 
-        data=go.Heatmap(
+    ]
 
-            z=matrix
-
-        )
-
-    )
-
-
-    fig.update_layout(
-
-        height=700,
-
-        title="CSI Waterfall"
-
-    )
-
-
-    st.plotly_chart(
-    fig,
-    width="stretch"
 )
 
 
 
-
-# =====================
-# ENERGY
-# =====================
-
-
-elif mode=="CSI Energy":
+# =========================
+# MODEL LOAD
+# =========================
 
 
-    fig=go.Figure()
+if (model_manager.model_name!=model_choice):
+    model_manager.load(model_choice)
+
+    # print(type(model_manager))
+    # print (model_manager['model'])
+    # print (model_manager['zero_cols'])
+    # print (model_manager['n_features'])
 
 
-    fig.add_trace(
+# =========================
+# READ ESP32 DATA
+# =========================
 
-        go.Scatter(
-            y=energy,
-            mode="lines"
-        )
 
+packets = reader.get_data()
+
+
+
+if packets is None or len(packets) == 0:
+
+
+    st.warning(
+        "Waiting for ESP32 CSI packets..."
     )
 
 
-    fig.update_layout(
-        title="CSI Energy / Motion",
-        height=400
-    )
+    time.sleep(1)
 
 
-    st.plotly_chart(
-    fig,
-    width="stretch"
+    st.rerun()
+
+
+
+# =========================
+# CREATE DATAFRAME
+# =========================
+
+
+df = FeatureExtractor.packet_to_dataframe(
+    packets
 )
 
 
 
-
-# =====================
-# VARIANCE
-# =====================
-
-
-elif mode=="CSI Variance":
+# =========================
+# BASIC CHECK
+# =========================
 
 
-    fig=go.Figure()
+if len(df) == 0:
+    st.warning(
+        "No valid CSI data"
+    )
+    st.stop()
 
 
-    fig.add_trace(
+# =========================
+# METRICS
+# =========================
 
-        go.Scatter(
-            y=variance,
-            mode="lines"
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "Packets",
+        len(df)
+    )
+
+with col2:
+    st.metric(
+        "RSSI",
+        round(
+            float(df.rssi.iloc[-1]),
+            2
+        )
+    )
+
+with col3:
+    st.metric(
+        "Channel",
+        int(
+            df.channel.iloc[-1]
+        )
+    )
+
+with col4:
+    st.metric(
+        "CSI Length",
+        int(df.shape[1])
+    )
+    # st.write(df.shape)
+# =========================
+# FEATURE CALCULATION
+# =========================
+
+energy = compute_energy(df)
+variance = compute_variance(df)
+st.divider()
+
+# =========================
+# PLACE HOLDERS
+# =========================
+
+# left, right = st.columns(
+#     [2,1]
+# )
+
+# with left:
+
+
+# with right:
+    # st.subheader(
+    #     "🤖 Prediction"
+    # )
+
+
+# =========================
+# MODEL PREDICTION
+# =========================
+
+st.divider()
+
+# with right:
+st.subheader(
+        "🤖 Prediction"
+    )
+if model_choice == "None":
+    st.info(
+        "AI Model Disabled"
+    )
+
+else:
+    try:
+        sample = df.tail(100).copy()
+        if model_manager.zero_cols:
+            sample = sample.drop(   
+                columns=list(model_manager.zero_cols),
+                errors="ignore"
+            )
+        st.write(f"Input Shape : {sample.shape}")
+        sample = sample[model_manager.features]
+        st.write(f"expected Shape :{sample.shape}")
+        if sample.shape[1] != model_manager.n_features:
+            raise ValueError(
+                f"Feature mismatch: {sample.shape[0]} != {model_manager.n_features}"
+            )
+        st.write(f"sample :{sample.iloc[0]}")
+        prediction = model_manager.predict(sample)
+        st.success(
+            f"Prediction: {prediction}"
         )
 
+    except Exception as e:
+        st.error(
+            f"Prediction Error: {e}"
+        )
+
+# =========================
+# VISUALIZATION
+# =========================
+
+st.divider()
+st.subheader(
+        "📈 Live Signal"
+    )
+
+if visualization == "Live CSI":
+    fig = live_csi(
+        df
+    )
+    st.plotly_chart(
+        fig,
+        width="stretch"
     )
 
 
-    fig.update_layout(
-        title="CSI Variance",
-        height=400
+elif visualization == "Waterfall":
+    fig = waterfall(
+        df
     )
-
 
     st.plotly_chart(
-    fig,
-    width="stretch"
+        fig,
+        width="stretch"
+    )
+
+elif visualization == "RSSI":
+
+    fig = rssi(
+        df
+    )
+
+    st.plotly_chart(
+
+        fig,
+        width="stretch"
+
+    )
+
+
+elif visualization == "Energy":
+    fig = st.line_chart(
+        energy
+    )
+
+elif visualization == "Variance":
+    fig = st.line_chart(
+        variance
+    )
+
+# =========================
+# EXTRA LIVE VIEW
+# =========================
+
+st.divider()
+st.subheader(
+    "📡 Latest CSI Packet"
 )
 
+csi_cols = [
 
+    f"cs{i}"
 
+    for i in range(128)
 
-# =====================
-# RSSI
-# =====================
+]
 
+latest_csi = df.iloc[-1][csi_cols]
 
-elif mode=="RSSI":
-
-
-    fig=go.Figure()
-
-
-    fig.add_trace(
-
-        go.Scatter(
-
-            y=df.rssi,
-
-            mode="lines"
-
-        )
-
-    )
-
-
-    fig.update_layout(
-        title="RSSI",
-        height=400
-    )
-
-
-    st.plotly_chart(
-    fig,
-    width="stretch"
+st.line_chart(
+    latest_csi
 )
 
+# =========================
+# AUTO REFRESH
+# =========================
 
-
-
-# =====================
-# SINGLE CSI
-# =====================
-
-
-elif mode=="Single Subcarrier":
-
-
-    cs=st.sidebar.slider(
-        "Subcarrier",
-        0,
-        255,
-        0
-    )
-
-
-    fig=go.Figure()
-
-
-    fig.add_trace(
-
-        go.Scatter(
-
-            y=df[f"cs{cs}"],
-
-            mode="lines"
-
-        )
-
-    )
-
-
-    fig.update_layout(
-        title=f"CSI {cs}",
-        height=400
-    )
-
-
-    st.plotly_chart(
-        fig
-    )
-
-
-
-
-
-# =====================
-# NORMALIZED
-# =====================
-
-
-elif mode=="Normalized CSI":
-
-
-    x=MinMaxScaler().fit_transform(
-        csi
-    )
-
-
-    fig=go.Figure(
-
-        go.Heatmap(
-            z=x.T
-        )
-
-    )
-
-
-    fig.update_layout(
-        height=700
-    )
-
-
-    st.plotly_chart(
-    fig,
-    width="stretch"
+time.sleep(
+    3
 )
 
-
-
-# refresh
-
-time.sleep(2)
 
 st.rerun()
+

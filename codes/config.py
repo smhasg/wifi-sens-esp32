@@ -1,0 +1,13 @@
+SERIAL_PORT = "COM9"
+BAUD_RATE = 921600
+BUFFER_SIZE = 15000
+
+REFRESH_TIME = 3
+
+RAW_CSI_SIZE = 128
+
+RUVIEW_IP = "192.168.1.100"
+RUVIEW_PORT = 5005
+
+RF_MODEL = "random_forest_model.pkl"
+XGB_MODEL = "xgb_csi_model.pkl"
