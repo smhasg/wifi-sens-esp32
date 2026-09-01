@@ -1,0 +1,1 @@
+python firmware/esp32-csi-node/provision.py --port COM9 --ssid "CSI_TEST" --password "12345678" --target-ip 192.168.1.20

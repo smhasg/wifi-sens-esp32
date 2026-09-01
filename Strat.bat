@@ -1,0 +1,1 @@
+cargo run -p wifi-densepose-pointcloud --release -- serve --bind 0.0.0.0:9880
