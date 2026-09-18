@@ -1,0 +1,124 @@
+
+==============================================================================
+WiFi CSI + CAMERA POSE DATASET QA
+==============================================================================
+Dataset directory:
+C:\Users\smhas\Desktop\working\wifi-sens\codes\wifi_pose_dataset
+
+Output directory:
+C:\Users\smhas\Desktop\working\wifi-sens\codes\dataset_qa_output
+
+==============================================================================
+CHUNK FILES
+==============================================================================
+chunk_00000.npz                samples=5000   keys=7
+chunk_00001.npz                samples=5000   keys=7
+chunk_00002.npz                samples=5000   keys=7
+chunk_00003.npz                samples=4309   keys=7
+chunk_00000.npz                samples=69     keys=7
+chunk_00000.npz                samples=34     keys=7
+
+Files        : 6
+Total samples: 19412
+
+==============================================================================
+LOADING DATASET
+==============================================================================
+[LOAD] wifi_pose_dataset\session_20260902_184744\csi\chunk_00000.npz
+[LOAD] wifi_pose_dataset\session_20260902_184744\csi\chunk_00001.npz
+[LOAD] wifi_pose_dataset\session_20260902_184744\csi\chunk_00002.npz
+[LOAD] wifi_pose_dataset\session_20260902_184744\csi\chunk_00003.npz
+[LOAD] wifi_pose_dataset\session_20260902_193456\csi\chunk_00000.npz
+[LOAD] wifi_pose_dataset\session_20260902_194010\csi\chunk_00000.npz
+
+==============================================================================
+GENERAL DATASET VALIDATION
+==============================================================================
+csi_amplitude         : shape=(19412, 128)           dtype=float32    NaN=0      Inf=0
+iq                    : shape=(19412, 256)           dtype=int16      NaN=0      Inf=0
+pose                  : MISSING
+pose_confidence       : MISSING
+timestamp             : shape=(19412,)               dtype=int64      NaN=0      Inf=0
+rssi                  : shape=(19412,)               dtype=int16      NaN=0      Inf=0
+channel               : shape=(19412,)               dtype=int16      NaN=0      Inf=0
+pose_age_ms           : MISSING
+csi_arrival_time      : shape=(19412,)               dtype=float64    NaN=0      Inf=0
+camera_time           : MISSING
+
+Sample count values: [19412]
+[OK] Sample counts are consistent.
+[OK] CSI shape matches expected [N, 128]
+
+==============================================================================
+CSI QUALITY
+==============================================================================
+Samples      : 19412
+Subcarriers  : 128
+
+Amplitude statistics
+--------------------------------------------------
+min    : 0.000000
+max    : 145.989731
+mean   : 29.375102
+median : 9.219544
+std    : 27.625888
+
+Subcarrier quality
+--------------------------------------------------
+Mostly-zero subcarriers (>=95% zero): 19 / 128
+Near-zero variance subcarriers: 17 / 128
+Mostly-zero indices: [0, 1, 2, 3, 4, 5, 32, 59, 60, 61, 62, 63, 64, 65, 123, 124, 125, 126, 127]
+Low-variance indices: [0, 1, 2, 3, 4, 5, 32, 59, 60, 61, 62, 63, 64, 65, 125, 126, 127]
+
+Duplicate analysis
+--------------------------------------------------
+Unique CSI samples       : 19412
+Exact duplicate samples  : 0
+Exact duplicate rate     : 0.000%
+
+Consecutive CSI difference
+--------------------------------------------------
+Raw RMS difference       : min=0.5612, p25=1.4959, median=1.9271, p75=2.6485, p95=4.2614, max=42.7452
+Normalized RMS difference: min=0.0192, p25=0.0474, median=0.0631, p75=0.0907, p95=0.1396, max=1.8155
+Near-identical consecutive pairs (< 0.01): 0 / 19411 (0.00%)
+[SAVED] dataset_qa_output\01_subcarrier_mean.png
+[SAVED] dataset_qa_output\02_subcarrier_std.png
+[SAVED] dataset_qa_output\03_subcarrier_zero_rate.png
+[SAVED] dataset_qa_output\04_csi_heatmap.png
+[SAVED] dataset_qa_output\05_csi_energy.png
+[SAVED] dataset_qa_output\06_csi_consecutive_difference.png
+
+==============================================================================
+TEMPORAL SAMPLING
+==============================================================================
+
+csi_arrival_time
+--------------------------------------------------
+median dt  : 54.030 ms
+mean dt    : 162.133 ms
+median FPS : 18.51 Hz
+mean FPS   : 6.17 Hz
+p95 dt     : 78.831 ms
+
+==============================================================================
+RSSI
+==============================================================================
+RSSI: min=-91.0000, p25=-51.0000, median=-51.0000, p75=-50.0000, p95=-48.0000, max=-41.0000
+
+RSSI vs CSI energy correlation: -0.5005
+[SAVED] dataset_qa_output\16_rssi.png
+
+==============================================================================
+FINAL QA SUMMARY
+==============================================================================
+
+Samples              : 19412
+CSI duplicates       : 0.000%
+
+All QA outputs saved to:
+C:\Users\smhas\Desktop\working\wifi-sens\codes\dataset_qa_output
+
+==============================================================================
+DONE
+==============================================================================
+Dataset QA completed successfully.

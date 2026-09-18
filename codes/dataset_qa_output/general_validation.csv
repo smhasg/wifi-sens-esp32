@@ -1,0 +1,11 @@
+key,present,shape,dtype,nan_count,inf_count
+csi_amplitude,True,"(19412, 128)",float32,0.0,0.0
+iq,True,"(19412, 256)",int16,0.0,0.0
+pose,False,,,,
+pose_confidence,False,,,,
+timestamp,True,"(19412,)",int64,0.0,0.0
+rssi,True,"(19412,)",int16,0.0,0.0
+channel,True,"(19412,)",int16,0.0,0.0
+pose_age_ms,False,,,,
+csi_arrival_time,True,"(19412,)",float64,0.0,0.0
+camera_time,False,,,,

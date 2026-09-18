@@ -1,0 +1,219 @@
+====================================================================================================
+ALIGNED DATASET QA
+====================================================================================================
+Directory : wifi_pose_dataset\session_20260902_184744\aligned
+Chunks    : 4
+
+----------------------------------------------------------------------------------------------------
+[1/4] chunk_00000.npz
+----------------------------------------------------------------------------------------------------
+samples                            : 5000
+CSI shape                          : (5000, 128)
+pose shape                         : (5000, 17, 2)
+CSI NaN                            : 0
+CSI Inf                            : 0
+Pose NaN                           : 6716
+Confidence NaN                     : 3358
+CSI min                            : 0.0
+CSI max                            : 86.97700500488281
+CSI mean                           : 29.1718807220459
+CSI median                         : 9.219544410705566
+CSI std                            : 26.997657775878906
+pose_valid samples                 : 4858
+pose_valid %                       : 97.16%
+>=8 KP samples                     : 4855
+>=8 KP %                           : 97.10%
+valid KP/sample median             : 17.0
+valid KP/sample p95                : 17.0
+valid KP/sample max                : 17
+pose age median                    : 130.78 ms
+pose age p95                       : 252.34 ms
+pose age max                       : 354.64 ms
+CSI dt median                      : 53.49 ms
+CSI FPS median                     : 18.69 Hz
+exact CSI duplicates               : 0
+
+----------------------------------------------------------------------------------------------------
+[2/4] chunk_00001.npz
+----------------------------------------------------------------------------------------------------
+samples                            : 5000
+CSI shape                          : (5000, 128)
+pose shape                         : (5000, 17, 2)
+CSI NaN                            : 0
+CSI Inf                            : 0
+Pose NaN                           : 67498
+Confidence NaN                     : 33749
+CSI min                            : 0.0
+CSI max                            : 138.7083282470703
+CSI mean                           : 29.260730743408203
+CSI median                         : 9.219544410705566
+CSI std                            : 27.282123565673828
+pose_valid samples                 : 3089
+pose_valid %                       : 61.78%
+>=8 KP samples                     : 3089
+>=8 KP %                           : 61.78%
+valid KP/sample median             : 16.0
+valid KP/sample p95                : 17.0
+valid KP/sample max                : 17
+pose age median                    : 137.94 ms
+pose age p95                       : 273.89 ms
+pose age max                       : 419.77 ms
+CSI dt median                      : 56.56 ms
+CSI FPS median                     : 17.68 Hz
+exact CSI duplicates               : 0
+
+----------------------------------------------------------------------------------------------------
+[3/4] chunk_00002.npz
+----------------------------------------------------------------------------------------------------
+samples                            : 5000
+CSI shape                          : (5000, 128)
+pose shape                         : (5000, 17, 2)
+CSI NaN                            : 0
+CSI Inf                            : 0
+Pose NaN                           : 170000
+Confidence NaN                     : 85000
+CSI min                            : 0.0
+CSI max                            : 85.5102310180664
+CSI mean                           : 29.815093994140625
+CSI median                         : 9.219544410705566
+CSI std                            : 28.466299057006836
+pose_valid samples                 : 0
+pose_valid %                       : 0.00%
+>=8 KP samples                     : 0
+>=8 KP %                           : 0.00%
+valid KP/sample median             : 0.0
+valid KP/sample p95                : 0.0
+valid KP/sample max                : 0
+pose age median                    : N/A
+pose age p95                       : N/A
+pose age max                       : N/A
+CSI dt median                      : 54.41 ms
+CSI FPS median                     : 18.38 Hz
+exact CSI duplicates               : 0
+
+----------------------------------------------------------------------------------------------------
+[4/4] chunk_00003.npz
+----------------------------------------------------------------------------------------------------
+samples                            : 4309
+CSI shape                          : (4309, 128)
+pose shape                         : (4309, 17, 2)
+CSI NaN                            : 0
+CSI Inf                            : 0
+Pose NaN                           : 134700
+Confidence NaN                     : 67350
+CSI min                            : 0.0
+CSI max                            : 145.98973083496094
+CSI mean                           : 29.265911102294922
+CSI median                         : 9.848857879638672
+CSI std                            : 27.789762496948242
+pose_valid samples                 : 368
+pose_valid %                       : 8.54%
+>=8 KP samples                     : 368
+>=8 KP %                           : 8.54%
+valid KP/sample median             : 0.0
+valid KP/sample p95                : 17.0
+valid KP/sample max                : 17
+pose age median                    : 138.25 ms
+pose age p95                       : 270.14 ms
+pose age max                       : 351.04 ms
+CSI dt median                      : 51.65 ms
+CSI FPS median                     : 19.36 Hz
+exact CSI duplicates               : 0
+
+
+====================================================================================================
+GLOBAL QA SUMMARY
+====================================================================================================
+Total chunks                       : 4
+Total samples                      : 19309
+
+Total valid aligned                : 8315
+Alignment ratio                    : 43.06%
+
+====================================================================================================
+CSI QUALITY
+====================================================================================================
+energy mean                        : 40.253835592433376
+energy median                      : 40.52092361450195
+energy std                         : 2.583019914181377
+CSI NaN total                      : 0
+CSI Inf total                      : 0
+Exact duplicate samples            : 0
+
+====================================================================================================
+POSE QUALITY
+====================================================================================================
+valid KP median                    : 0.0
+valid KP mean                      : 7.186493345072246
+valid KP p25                       : 0.0
+valid KP p75                       : 17.0
+valid KP p95                       : 17.0
+valid KP max                       : 17
+
+Per-keypoint quality:
+KP 00 | valid=   8292 | ratio= 42.94% | mean_conf=0.962 | median_conf=0.984
+KP 01 | valid=   8227 | ratio= 42.61% | mean_conf=0.909 | median_conf=0.951
+KP 02 | valid=   8248 | ratio= 42.72% | mean_conf=0.930 | median_conf=0.955
+KP 03 | valid=   7836 | ratio= 40.58% | mean_conf=0.685 | median_conf=0.718
+KP 04 | valid=   8198 | ratio= 42.46% | mean_conf=0.707 | median_conf=0.737
+KP 05 | valid=   8312 | ratio= 43.05% | mean_conf=0.974 | median_conf=0.989
+KP 06 | valid=   8280 | ratio= 42.88% | mean_conf=0.978 | median_conf=0.990
+KP 07 | valid=   8282 | ratio= 42.89% | mean_conf=0.899 | median_conf=0.941
+KP 08 | valid=   8280 | ratio= 42.88% | mean_conf=0.913 | median_conf=0.953
+KP 09 | valid=   8282 | ratio= 42.89% | mean_conf=0.862 | median_conf=0.907
+KP 10 | valid=   8271 | ratio= 42.83% | mean_conf=0.884 | median_conf=0.925
+KP 11 | valid=   8292 | ratio= 42.94% | mean_conf=0.973 | median_conf=0.993
+KP 12 | valid=   8312 | ratio= 43.05% | mean_conf=0.969 | median_conf=0.994
+KP 13 | valid=   8200 | ratio= 42.47% | mean_conf=0.909 | median_conf=0.980
+KP 14 | valid=   8182 | ratio= 42.37% | mean_conf=0.908 | median_conf=0.986
+KP 15 | valid=   7645 | ratio= 39.59% | mean_conf=0.824 | median_conf=0.896
+KP 16 | valid=   7625 | ratio= 39.49% | mean_conf=0.830 | median_conf=0.911
+
+====================================================================================================
+ALIGNMENT TIMING
+====================================================================================================
+age median                         : 133.58 ms
+age mean                           : 135.72 ms
+age p90                            : 241.93 ms
+age p95                            : 259.68 ms
+age p99                            : 297.77 ms
+age max                            : 419.77 ms
+
+====================================================================================================
+ALIGNMENT METHODS
+====================================================================================================
+interpolated        :     8277 ( 42.87%)
+next                :       19 (  0.10%)
+none                :    10994 ( 56.94%)
+previous            :       19 (  0.10%)
+
+====================================================================================================
+CSI TIMELINE
+====================================================================================================
+duration                           : 1083.55 sec
+dt median                          : 54.07 ms
+dt mean                            : 56.12 ms
+dt p95                             : 78.81 ms
+FPS median                         : 18.49 Hz
+FPS mean                           : 17.82 Hz
+
+====================================================================================================
+RSSI
+====================================================================================================
+min                                : -91.0
+p25                                : -51.0
+median                             : -51.0
+p75                                : -50.0
+p95                                : -48.0
+max                                : -43.0
+
+====================================================================================================
+FINAL VERDICT
+====================================================================================================
+[OK] CSI contains no NaN.
+[OK] CSI contains no Inf.
+[OK] No exact CSI duplicates.
+[WEAK] Alignment ratio = 43.06%
+
+>>> Dataset is NOT ready for serious pose training yet.
+====================================================================================================

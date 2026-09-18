@@ -1,0 +1,11 @@
+{
+  "session": "session_20260902_193456",
+  "duration_seconds": 286.3673093999969,
+  "csi_packets": 69,
+  "csi_bad_packets": 0,
+  "csi_rate_hz": 0.24094929042204685,
+  "pose_frames": 687,
+  "person_frames": 687,
+  "person_detection_ratio": 1.0,
+  "csi_chunks": 1
+}

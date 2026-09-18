@@ -1,0 +1,29 @@
+{
+  "version": "V3",
+  "created_at": "2026-09-02T19:34:56.500472",
+  "serial": {
+    "port": "COM9",
+    "baud": 921600
+  },
+  "camera": {
+    "index": 1,
+    "backend": "DSHOW",
+    "width": 640,
+    "height": 480,
+    "fps_requested": 30
+  },
+  "yolo": {
+    "model": "yolov8n-pose.pt",
+    "keypoints": 17
+  },
+  "csi": {
+    "expected_subcarriers": 128,
+    "expected_iq_values": 256
+  },
+  "synchronization": {
+    "method": "offline alignment",
+    "clock": "time.monotonic for CSI/camera",
+    "raw_esp_timestamp_saved": true
+  },
+  "notes": "CSI and camera pose are recorded independently. Alignment is performed offline after acquisition."
+}

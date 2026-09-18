@@ -1,0 +1,70 @@
+{
+    "dataset_version": "V4",
+    "created_at": "2026-09-02T21:12:10.763462",
+    "session_start_monotonic": 164865.4486068,
+    "session_end_monotonic": 164871.3671445,
+    "duration_seconds": 5.918537699995795,
+    "camera": {
+        "index": 1,
+        "backend": "CAP_DSHOW",
+        "width": 640,
+        "height": 480,
+        "requested_fps": 30,
+        "yolo_model": "yolov8n-pose.pt",
+        "yolo_conf": 0.25,
+        "keypoint_conf_threshold": 0.2
+    },
+    "csi": {
+        "serial_port": "COM9",
+        "baud_rate": 921600,
+        "n_subcarriers": 128,
+        "iq_values_per_sample": 256,
+        "chunk_size": 5000
+    },
+    "synchronization": {
+        "clock": "time.monotonic",
+        "online_matching": false,
+        "alignment": "performed_offline"
+    },
+    "statistics": {
+        "csi_packets": 0,
+        "csi_bad_packets": 0,
+        "pose_frames": 1,
+        "person_frames": 1,
+        "empty_frames": 0,
+        "csi_rate_hz": 0.0,
+        "person_detection_ratio": 1.0,
+        "empty_room_ratio": 0.0
+    },
+    "labels": {
+        "person_present": {
+            "0": "empty_room",
+            "1": "person_present"
+        },
+        "pose": {
+            "format": "17x2",
+            "coordinates": "normalized_xy",
+            "invalid_keypoints": "NaN",
+            "valid_mask": "pose_valid_mask"
+        }
+    },
+    "keypoints": [
+        "nose",
+        "left_eye",
+        "right_eye",
+        "left_ear",
+        "right_ear",
+        "left_shoulder",
+        "right_shoulder",
+        "left_elbow",
+        "right_elbow",
+        "left_wrist",
+        "right_wrist",
+        "left_hip",
+        "right_hip",
+        "left_knee",
+        "right_knee",
+        "left_ankle",
+        "right_ankle"
+    ]
+}

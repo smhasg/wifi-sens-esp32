@@ -1,0 +1,67 @@
+
+================================================================================
+WiFi CSI + Camera Pose Dataset Collector V4
+================================================================================
+
+Session : wifi_pose_dataset\session_20260902_211203
+
+[INFO] Loading YOLO pose model...
+[OK] YOLO loaded
+
+================================================================================
+Opening Camera
+================================================================================
+Index   : 1
+Backend : DirectShow
+[OK] Camera frame: (480, 640, 3)
+
+
+======================================================================
+Opening CSI Serial
+======================================================================
+Port     : COM9
+Baudrate : 921600
+================================================================================
+RECORDING
+================================================================================
+
+Controls:
+    Q = stop
+    ESC = stop
+
+IMPORTANT:
+    Empty room is intentionally recorded.
+    Person present = 1
+    Empty room    = 0
+
+
+[ERROR] Cannot open serial port:
+could not open port 'COM9': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+
+================================================================================
+Stopping
+================================================================================
+
+[INFO] Saving pose timeline...
+
+================================================================================
+FINAL SUMMARY
+================================================================================
+
+Session                 : session_20260902_211203
+Duration                : 5.92 sec
+CSI packets             : 0
+CSI bad packets         : 0
+CSI rate                : 0.00 Hz
+Pose frames             : 1
+Person frames           : 1
+Empty-room frames       : 0
+Person ratio            : 100.00%
+
+CSI directory           : wifi_pose_dataset\session_20260902_211203\csi
+Pose timeline           : wifi_pose_dataset\session_20260902_211203\pose\pose_timeline.npz
+Metadata                : wifi_pose_dataset\session_20260902_211203\metadata.json
+
+================================================================================
+DONE
+================================================================================

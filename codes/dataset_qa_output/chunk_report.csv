@@ -1,0 +1,7 @@
+file,samples,keys
+wifi_pose_dataset\session_20260902_184744\csi\chunk_00000.npz,5000,"csi_amplitude,iq,timestamp,rssi,channel,csi_arrival_time,n_subcarriers"
+wifi_pose_dataset\session_20260902_184744\csi\chunk_00001.npz,5000,"csi_amplitude,iq,timestamp,rssi,channel,csi_arrival_time,n_subcarriers"
+wifi_pose_dataset\session_20260902_184744\csi\chunk_00002.npz,5000,"csi_amplitude,iq,timestamp,rssi,channel,csi_arrival_time,n_subcarriers"
+wifi_pose_dataset\session_20260902_184744\csi\chunk_00003.npz,4309,"csi_amplitude,iq,timestamp,rssi,channel,csi_arrival_time,n_subcarriers"
+wifi_pose_dataset\session_20260902_193456\csi\chunk_00000.npz,69,"csi_amplitude,iq,timestamp,rssi,channel,csi_arrival_time,n_subcarriers"
+wifi_pose_dataset\session_20260902_194010\csi\chunk_00000.npz,34,"csi_amplitude,iq,timestamp,rssi,channel,csi_arrival_time,n_subcarriers"

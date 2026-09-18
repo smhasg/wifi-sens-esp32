@@ -1,0 +1,19 @@
+{
+    "dataset_directory": "C:\\Users\\smhas\\Desktop\\working\\wifi-sens\\codes\\wifi_pose_dataset",
+    "total_samples": 19412,
+    "number_of_chunks": 4,
+    "csi_exact_duplicates": 0,
+    "csi_duplicate_rate": 0.0,
+    "mostly_zero_subcarriers": 19,
+    "rssi_mean": -50.679991757675666,
+    "rssi_std": 1.2903313994769163,
+    "rssi_csi_energy_correlation": -0.5004501044371047,
+    "timing": {
+        "csi_arrival_time": {
+            "median_dt": 0.054030200000852346,
+            "median_hz": 18.508167654093906,
+            "mean_dt": 0.1621334152336308,
+            "mean_hz": 6.16776004230233
+        }
+    }
+}

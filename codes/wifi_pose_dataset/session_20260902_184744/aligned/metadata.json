@@ -1,0 +1,23 @@
+{
+  "source_session": "wifi_pose_dataset\\session_20260902_184744",
+  "pose_conf_threshold": 0.2,
+  "min_valid_keypoints": 8,
+  "max_interpolation_gap_ms": 1000.0,
+  "max_nearest_pose_age_ms": 300.0,
+  "total_csi_samples": 19309,
+  "total_valid_aligned_samples": 8315,
+  "alignment_ratio": 0.4306282044642395,
+  "alignment_methods": {
+    "interpolated": 8277,
+    "next": 19,
+    "none": 10994,
+    "previous": 19
+  },
+  "pose_frames": 2001,
+  "pose_valid_frames": 862,
+  "pose_time_start": 156207.0975222,
+  "pose_time_end": 157288.0761588,
+  "pose_age_median_ms": 133.5780029296875,
+  "pose_age_p95_ms": 259.6797729492187,
+  "pose_age_max_ms": 419.772705078125
+}
